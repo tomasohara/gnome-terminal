@@ -77,7 +77,11 @@ const char *terminal_screen_get_uuid (TerminalScreen *screen);
 
 TerminalScreen *terminal_screen_new (GSettings       *profile,
                                      const char      *title,
-                                     double           zoom);
+                                     double           zoom,
+                                     gboolean         no_xterm_title);
+
+const char *terminal_screen_get_fixed_title   (TerminalScreen *screen);
+gboolean    terminal_screen_get_no_xterm_title (TerminalScreen *screen);
 
 typedef void (* TerminalScreenExecCallback) (TerminalScreen *screen,
                                              GError         *error,

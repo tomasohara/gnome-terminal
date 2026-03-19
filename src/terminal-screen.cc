@@ -112,6 +112,10 @@ struct _TerminalScreenPrivate
   gboolean exec_on_realize;
   guint idle_exec_source;
   ExecData *exec_data;
+
+  /* TPO: per-screen xterm title blocking */
+  gboolean no_xterm_title; /* when TRUE, ignore xterm title-change escape sequences */
+  char *fixed_title;       /* title locked in from --title when no_xterm_title is set */
 };
 
 enum
@@ -519,18 +523,34 @@ terminal_screen_init (TerminalScreen *screen)
 
   gtk_drag_dest_set (GTK_WIDGET (screen),
                      GtkDestDefaults(GTK_DEST_DEFAULT_MOTION |
-				     GTK_DEST_DEFAULT_HIGHLIGHT |
-				     GTK_DEST_DEFAULT_DROP),
+                                     GTK_DEST_DEFAULT_HIGHLIGHT |
+                                     GTK_DEST_DEFAULT_DROP),
                      targets, n_targets,
                      GdkDragAction(GDK_ACTION_COPY | GDK_ACTION_MOVE));
 
   gtk_target_table_free (targets, n_targets);
   gtk_target_list_unref (target_list);
 
-  g_signal_connect (screen, "window-title-changed",
-                    G_CALLBACK (terminal_screen_window_title_changed),
-                    screen);
-
+  // TPO: block window title updates via per-screen no_xterm_title flag (client-side path).
+  // Legacy fallback: also honour G_IGNORE_TITLE_CHANGE server env var.
+  //
+  // OLD (always connected):
+  // g_signal_connect (screen, "window-title-changed",
+  //            G_CALLBACK (terminal_screen_window_title_changed),
+  //            screen);
+  //
+  const char *env_ignore = g_getenv ("G_IGNORE_TITLE_CHANGE");
+  g_printerr ("TPO terminal_screen_init: G_IGNORE_TITLE_CHANGE=%s\n",
+                           env_ignore ? env_ignore : "(unset)");
+  if (env_ignore && atoi (env_ignore)) {
+      g_printerr ("TPO terminal_screen_init: suppressing window-title-changed"
+                               " signal (legacy G_IGNORE_TITLE_CHANGE)\n");
+  } else {
+      g_signal_connect (screen, "window-title-changed",
+                        G_CALLBACK (terminal_screen_window_title_changed),
+                        screen);
+  }
+  
   app = terminal_app_get ();
   g_signal_connect (terminal_app_get_desktop_interface_settings (app), "changed::" MONOSPACE_FONT_KEY_NAME,
                     G_CALLBACK (terminal_screen_system_font_changed_cb), screen);
@@ -649,9 +669,9 @@ terminal_screen_class_init (TerminalScreenClass *klass)
      g_param_spec_object ("profile", nullptr, nullptr,
                           G_TYPE_SETTINGS,
                           GParamFlags(G_PARAM_READWRITE |
-				      G_PARAM_STATIC_NAME |
-				      G_PARAM_STATIC_NICK |
-				      G_PARAM_STATIC_BLURB)));
+                                      G_PARAM_STATIC_NAME |
+                                      G_PARAM_STATIC_NICK |
+                                      G_PARAM_STATIC_BLURB)));
 
   g_object_class_install_property
     (object_class,
@@ -659,9 +679,9 @@ terminal_screen_class_init (TerminalScreenClass *klass)
      g_param_spec_string ("title", nullptr, nullptr,
                           nullptr,
                           GParamFlags(G_PARAM_READABLE |
-				      G_PARAM_STATIC_NAME |
-				      G_PARAM_STATIC_NICK |
-				      G_PARAM_STATIC_BLURB)));
+                                      G_PARAM_STATIC_NAME |
+                                      G_PARAM_STATIC_NICK |
+                                      G_PARAM_STATIC_BLURB)));
 
   g_type_class_add_private (object_class, sizeof (TerminalScreenPrivate));
 
@@ -742,6 +762,7 @@ terminal_screen_finalize (GObject *object)
   g_slist_free_full (priv->match_tags, (GDestroyNotify) free_tag_data);
 
   g_free (priv->uuid);
+  g_free (priv->fixed_title);
 
   G_OBJECT_CLASS (terminal_screen_parent_class)->finalize (object);
 }
@@ -749,7 +770,8 @@ terminal_screen_finalize (GObject *object)
 TerminalScreen *
 terminal_screen_new (GSettings       *profile,
                      const char      *title,
-                     double           zoom)
+                     double           zoom,
+                     gboolean         no_xterm_title)
 {
   g_return_val_if_fail (G_IS_SETTINGS (profile), nullptr);
 
@@ -761,10 +783,25 @@ terminal_screen_new (GSettings       *profile,
                          g_settings_get_int (profile, TERMINAL_PROFILE_DEFAULT_SIZE_COLUMNS_KEY),
                          g_settings_get_int (profile, TERMINAL_PROFILE_DEFAULT_SIZE_ROWS_KEY));
 
+  /* TPO: store per-screen title-blocking state */
+  screen->priv->no_xterm_title = no_xterm_title;
+  screen->priv->fixed_title = title ? g_strdup (title) : nullptr;
+
+  g_printerr ("TPO terminal_screen_new: no_xterm_title=%d fixed_title=%s\n",
+                           no_xterm_title,
+                           screen->priv->fixed_title ? screen->priv->fixed_title : "(null)");
+
+  /* Sanity: if blocking is requested but no title provided, warn — the window
+   * will fall back to G_DEFAULT_TITLE or "Terminal" at sync time. */
+  if (no_xterm_title && title == nullptr)
+    g_printerr ("TPO terminal_screen_new: no_xterm_title=1 but title is null;"
+                             " window will use G_DEFAULT_TITLE or \"Terminal\"\n");
+
   /* If given an initial title, strip it of control characters and
-   * feed it to the terminal.
+   * feed it to the terminal — but only when we are NOT blocking xterm
+   * title updates (otherwise sync_screen_title uses fixed_title directly).
    */
-  if (title != nullptr) {
+  if (title != nullptr && !no_xterm_title) {
     GString *seq;
     const char *p;
 
@@ -788,6 +825,21 @@ terminal_screen_new (GSettings       *profile,
   terminal_screen_set_font (screen);
 
   return screen;
+}
+
+/* TPO: per-screen accessors for xterm title blocking */
+const char *
+terminal_screen_get_fixed_title (TerminalScreen *screen)
+{
+  g_return_val_if_fail (TERMINAL_IS_SCREEN (screen), nullptr);
+  return screen->priv->fixed_title;
+}
+
+gboolean
+terminal_screen_get_no_xterm_title (TerminalScreen *screen)
+{
+  g_return_val_if_fail (TERMINAL_IS_SCREEN (screen), FALSE);
+  return screen->priv->no_xterm_title;
 }
 
 static gboolean
@@ -931,7 +983,7 @@ terminal_screen_exec (TerminalScreen *screen,
 
   gboolean preserve_cwd = FALSE;
   GSpawnFlags spawn_flags = GSpawnFlags(G_SPAWN_SEARCH_PATH_FROM_ENVP |
-					VTE_SPAWN_NO_PARENT_ENVV);
+                                        VTE_SPAWN_NO_PARENT_ENVV);
   gs_strfreev char **exec_argv = nullptr;
   if (!terminal_screen_get_child_command (screen,
                                           argv,
@@ -1079,7 +1131,7 @@ terminal_screen_profile_changed_cb (GSettings     *profile,
       prop_name == I_(TERMINAL_PROFILE_SCROLLBACK_UNLIMITED_KEY))
     {
       glong lines = g_settings_get_boolean (profile, TERMINAL_PROFILE_SCROLLBACK_UNLIMITED_KEY) ?
-		    -1 : g_settings_get_int (profile, TERMINAL_PROFILE_SCROLLBACK_LINES_KEY);
+                    -1 : g_settings_get_int (profile, TERMINAL_PROFILE_SCROLLBACK_LINES_KEY);
       vte_terminal_set_scrollback_lines (vte_terminal, lines);
     }
 
@@ -2123,8 +2175,8 @@ _terminal_screen_update_scrollbar (TerminalScreen *screen)
 
 void
 terminal_screen_get_size (TerminalScreen *screen,
-			  int       *width_chars,
-			  int       *height_chars)
+                          int       *width_chars,
+                          int       *height_chars)
 {
   VteTerminal *terminal = VTE_TERMINAL (screen);
 
@@ -2134,8 +2186,8 @@ terminal_screen_get_size (TerminalScreen *screen,
 
 void
 terminal_screen_get_cell_size (TerminalScreen *screen,
-			       int                  *cell_width_pixels,
-			       int                  *cell_height_pixels)
+                               int                  *cell_width_pixels,
+                               int                  *cell_height_pixels)
 {
   VteTerminal *terminal = VTE_TERMINAL (screen);
 
@@ -2165,11 +2217,11 @@ terminal_screen_check_match (TerminalScreen *screen,
     {
       TagData *tag_data = (TagData*) tags->data;
       if (tag_data->tag == tag)
-	{
-	  if (flavor)
-	    *flavor = tag_data->flavor;
-	  return match;
-	}
+        {
+          if (flavor)
+            *flavor = tag_data->flavor;
+          return match;
+        }
     }
 
   g_free (match);

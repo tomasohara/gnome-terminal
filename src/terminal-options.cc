@@ -837,6 +837,18 @@ option_wait_cb (const gchar *option_name,
   return TRUE;
 }
 
+/* TPO: --no-xterm-title: block xterm title-change escape sequences per-window */
+static gboolean
+option_no_xterm_title_cb (const gchar *option_name G_GNUC_UNUSED,
+                           const gchar *value G_GNUC_UNUSED,
+                           gpointer     data,
+                           GError     **error G_GNUC_UNUSED)
+{
+  TerminalOptions *options = (TerminalOptions*)data;
+  options->no_xterm_title = TRUE;
+  return TRUE;
+}
+
 static gboolean
 option_pass_fd_cb (const gchar *option_name,
                    const gchar *value,
@@ -1130,6 +1142,67 @@ terminal_options_parse (int *argcp,
     terminal_options_free (options);
     return nullptr;
   }
+
+  /* TPO: client-side env var bridging — read vars from the shell environment
+   * (reliably available here) and forward their intent to the server via the
+   * existing D-Bus option mechanism, so per-window settings work correctly
+   * even when the server is a pre-existing D-Bus service.
+   *
+   * --title / G_DEFAULT_TITLE: use env var as fallback when no explicit --title
+   * --no-xterm-title: auto-enable when legacy G_DISABLE_TITLE_SYNC or
+   *   G_IGNORE_TITLE_CHANGE env vars are set.
+   * GNOME_TERMINAL_SERVER_APP_ID: when --no-xterm-title is active and no
+   *   explicit --app-id was given, route to the patched custom server so that
+   *   title blocking is actually enforced (the stock system server silently
+   *   ignores the no-xterm-title D-Bus key).
+   */
+  if (options->default_title == nullptr) {
+    const char *env_default_title = g_getenv ("G_DEFAULT_TITLE");
+    if (env_default_title != nullptr) {
+      options->default_title = g_strdup (env_default_title);
+      terminal_printerr_detail ("TPO: G_DEFAULT_TITLE -> default_title=\"%s\"\n",
+                               options->default_title);
+    }
+  }
+  if (!options->no_xterm_title) {
+    const char *env_disable = g_getenv ("G_DISABLE_TITLE_SYNC");
+    const char *env_ignore  = g_getenv ("G_IGNORE_TITLE_CHANGE");
+    if ((env_disable && atoi (env_disable)) || (env_ignore && atoi (env_ignore))) {
+      options->no_xterm_title = TRUE;
+      terminal_printerr_detail ("TPO: legacy env var -> no_xterm_title enabled"
+                               " (G_DISABLE_TITLE_SYNC=%s G_IGNORE_TITLE_CHANGE=%s)\n",
+                               env_disable ? env_disable : "(unset)",
+                               env_ignore  ? env_ignore  : "(unset)");
+    }
+  }
+  /* Route --no-xterm-title invocations to our installed server.
+   * The parent terminal session sets GNOME_TERMINAL_SERVICE=:1.xx and
+   * GNOME_TERMINAL_SERVER_APP_ID (legacy), both of which would otherwise
+   * route to the system org.gnome.Terminal server that ignores no-xterm-title.
+   * Force our TERMINAL_APPLICATION_ID and clear server_unique_name so
+   * factory_proxy_new() uses our D-Bus auto-activated server.
+   */
+  if (options->no_xterm_title && options->server_app_id == nullptr) {
+    const char *env_server_app_id = g_getenv ("GNOME_TERMINAL_SERVER_APP_ID");
+    if (env_server_app_id != nullptr &&
+        strcmp (env_server_app_id, TERMINAL_APPLICATION_ID) != 0) {
+      g_printerr ("TPO WARNING: GNOME_TERMINAL_SERVER_APP_ID=\"%s\" differs from"
+                  " installed app-id \"%s\" — ignoring stale override.\n"
+                  "  Fix: unset GNOME_TERMINAL_SERVER_APP_ID\n",
+                  env_server_app_id, TERMINAL_APPLICATION_ID);
+    }
+    /* Force our server; clear any inherited unique-name from the parent session */
+    options->server_app_id = g_strdup (TERMINAL_APPLICATION_ID);
+    g_free (options->server_unique_name);
+    options->server_unique_name = nullptr;
+    terminal_printerr_detail ("TPO: --no-xterm-title: routing to \"%s\","
+                             " cleared server_unique_name\n", TERMINAL_APPLICATION_ID);
+  }
+  terminal_printerr_detail ("TPO: options summary: no_xterm_title=%d default_title=%s"
+                           " server_app_id=%s\n",
+                           options->no_xterm_title,
+                           options->default_title ? options->default_title : "(null)",
+                           options->server_app_id ? options->server_app_id : "(null)");
 
 #ifdef GDK_WINDOWING_X11
   /* Do this here so that gdk_display is initialized */
@@ -1576,6 +1649,16 @@ get_goption_context (TerminalOptions *options)
       nullptr
     },
     {
+      /* TPO: block xterm title-change escape sequences for this window */
+      "no-xterm-title",
+      0,
+      G_OPTION_FLAG_NO_ARG,
+      G_OPTION_ARG_CALLBACK,
+      (void*)option_no_xterm_title_cb,
+      N_("Block xterm title-change escape sequences (use --title to set a fixed title)"),
+      nullptr
+    },
+    {
       "fd",
       0,
       0,
@@ -1692,6 +1775,29 @@ get_goption_context (TerminalOptions *options)
   context = g_option_context_new (parameter);
   g_option_context_set_translation_domain (context, GETTEXT_PACKAGE);
   g_option_context_set_ignore_unknown_options (context, FALSE);
+
+  /* TPO: describe environment variables that influence title-blocking behaviour */
+  g_option_context_set_description (context,
+    "Environment variables (xterm title blocking):\n"
+    "  G_DEFAULT_TITLE=TITLE          Fallback window title when no --title is given\n"
+    "                                 and no xterm title-change sequence has fired.\n"
+    "  G_DISABLE_TITLE_SYNC=1         Legacy: block xterm title-change sequences\n"
+    "                                 (equivalent to --no-xterm-title).\n"
+    "  G_IGNORE_TITLE_CHANGE=1        Legacy: suppress window-title-changed signal\n"
+    "                                 in the server (equivalent to --no-xterm-title).\n"
+    "  GNOME_TERMINAL_SERVER_APP_ID=ID  Legacy override: route to a non-default\n"
+    "                                 server app-id for manual testing.  Normally\n"
+    "                                 unset; the installed server auto-activates.\n"
+    "                                 If set to a value with no .service file you\n"
+    "                                 will get \"name not provided\" D-Bus errors.\n"
+    "\n"
+    "Typical usage (per-window fixed titles, D-Bus auto-activation):\n"
+    "  my-gnome-terminal --title 'project-A' --no-xterm-title -- bash\n"
+    "  my-gnome-terminal --title 'project-B' --no-xterm-title -- bash\n"
+    "\n"
+    "  No server pre-launch needed: the server auto-activates via D-Bus\n"
+    "  (~/.local/share/dbus-1/services/my.GnomeTerminal.service).\n"
+    "  If GNOME_TERMINAL_SERVER_APP_ID is set from old testing, unset it.\n");
 
   g_option_context_add_group (context, gtk_get_option_group (TRUE));
 

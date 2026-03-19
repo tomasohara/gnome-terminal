@@ -27,7 +27,7 @@ enum {
   _EXIT_FAILURE_GTK_INIT = 10
 };
 
-#define TERMINAL_APPLICATION_ID                 "org.gnome.Terminal"
+#define TERMINAL_APPLICATION_ID                 "my.GnomeTerminal"
 
 #define TERMINAL_OBJECT_PATH_PREFIX             "/org/gnome/Terminal"
 #define TERMINAL_OBJECT_INTERFACE_PREFIX        "org.gnome.Terminal"
@@ -49,7 +49,7 @@ enum {
 #define TERMINAL_ENV_SERVICE_NAME               "GNOME_TERMINAL_SERVICE"
 #define TERMINAL_ENV_SCREEN                     "GNOME_TERMINAL_SCREEN"
 
-#define TERMINAL_PREFERENCES_BINARY_NAME        "gnome-terminal-preferences"
+#define TERMINAL_PREFERENCES_BINARY_NAME        "my-gnome-terminal-preferences"
 
 G_END_DECLS
 

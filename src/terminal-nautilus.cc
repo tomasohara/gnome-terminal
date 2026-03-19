@@ -340,7 +340,8 @@ create_terminal (ExecData *data /* transfer full */)
                                                   nullptr /* title */,
                                                   TRUE, /* active */
                                                   FALSE /* maximised */,
-                                                  FALSE /* fullscreen */);
+                                                  FALSE /* fullscreen */,
+                                                  FALSE /* no_xterm_title */);
 
   if (!terminal_factory_call_create_instance_sync
          (factory,

@@ -165,7 +165,8 @@ terminal_client_append_create_instance_options (GVariantBuilder *builder,
                                                 const char      *title,
                                                 gboolean         active,
                                                 gboolean         maximise_window,
-                                                gboolean         fullscreen_window)
+                                                gboolean         fullscreen_window,
+                                                gboolean         no_xterm_title)
 {
   /* Bytestring options */
   if (display_name != nullptr)
@@ -206,6 +207,11 @@ terminal_client_append_create_instance_options (GVariantBuilder *builder,
   if (fullscreen_window)
     g_variant_builder_add (builder, "{sv}",
                            "fullscreen-window", g_variant_new_boolean (TRUE));
+
+  /* TPO: per-window xterm title blocking flag */
+  if (no_xterm_title)
+    g_variant_builder_add (builder, "{sv}",
+                           "no-xterm-title", g_variant_new_boolean (TRUE));
 }
 
 char const* const*

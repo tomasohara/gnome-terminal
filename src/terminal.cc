@@ -280,6 +280,10 @@ factory_proxy_new (TerminalOptions *options,
 {
   const char *service_name = options->server_app_id;
 
+  terminal_printerr_detail ("TPO client: factory_proxy_new: server_app_id=%s server_unique_name=%s\n",
+              options->server_app_id ? options->server_app_id : "(null)",
+              options->server_unique_name ? options->server_unique_name : "(null)");
+
   /* If --app-id was specified, or the environment does not specify
    * the server to use, create the factory proxy from the given (or default)
    * name, with no fallback.
@@ -465,7 +469,13 @@ handle_options (TerminalOptions *options,
                                                           it->title ? it->title : options->default_title,
                                                           it->active,
                                                           iw->start_maximized,
-                                                          iw->start_fullscreen);
+                                                          iw->start_fullscreen,
+                                                          options->no_xterm_title);
+          terminal_printerr_detail ("TPO client: CreateInstance title=%s no_xterm_title=%d service=%s\n",
+                      (it->title ? it->title : options->default_title)
+                        ? (it->title ? it->title : options->default_title) : "(null)",
+                      options->no_xterm_title,
+                      service_name ? service_name : "(null)");
 
           /* This will be used to apply missing defaults */
           if (parent_screen_object_path != nullptr)
@@ -595,6 +605,11 @@ main (int argc, char **argv)
     return exit_code;
   }
 
+  terminal_printerr_detail ("TPO client: no_xterm_title=%d default_title=%s server_app_id=%s\n",
+              options->no_xterm_title,
+              options->default_title ? options->default_title : "(null)",
+              options->server_app_id ? options->server_app_id : "(null)");
+
   g_set_application_name (_("Terminal"));
 
   gs_unref_object TerminalFactory *factory = nullptr;
@@ -606,6 +621,9 @@ main (int argc, char **argv)
                           &parent_screen_object_path,
                           &error))
     return exit_code;
+
+  terminal_printerr_detail ("TPO client: connected to service_name=%s\n",
+              service_name ? service_name : "(null)");
 
   if (options->print_environment) {
     const char *name_owner = g_dbus_proxy_get_name_owner (G_DBUS_PROXY (factory));

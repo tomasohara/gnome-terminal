@@ -14,12 +14,13 @@
 # along with this programme.  If not, see <https://www.gnu.org/licenses/>.
 
 project(
-  'gnome-terminal',
+  'my-gnome-terminal',
   ['c', 'cpp',],
   default_options: [
     'buildtype=release',
     'warning_level=0',
     'b_ndebug=false',
+    'prefix=/home/tomohara/.local',
   ],
   license: [
     'GPL-3.0-or-later',             # the programme
@@ -27,13 +28,13 @@ project(
     'GFDL-1.3-only',                # the appstream data
   ],
   meson_version: '>= 0.62.0',
-  version: '3.52.0',
+  version: '3.54.1',
 )
 
 # Naming
 
-gt_name     = 'gnome-terminal'
-gt_dns_name = 'org.gnome.Terminal'
+gt_name     = 'my-gnome-terminal'
+gt_dns_name = 'my.GnomeTerminal'
 
 # Compiler requirements
 
@@ -63,6 +64,9 @@ schemas_req_version          = '0.1.0'
 # Versioning
 
 gt_version = meson.project_version()
+# TPO: alpha label appended for display; kept separate so version components
+# remain integers and meson version comparisons continue to work.
+gt_version_display = gt_version + '-alpha1'
 
 version_split = meson.project_version().split('.')
 gt_major_version = version_split[0].to_int()
@@ -156,7 +160,7 @@ assert(get_option('b_ndebug') == 'false', 'assertions may not be disabled')
 config_h = configuration_data()
 
 config_h.set_quoted('GETTEXT_PACKAGE', gt_gettext_domain)
-config_h.set_quoted('VERSION', gt_version)
+config_h.set_quoted('VERSION', gt_version_display)
 config_h.set('ENABLE_DEBUG', enable_debug)
 config_h.set('ENABLE_SEARCH_PROVIDER', get_option('search_provider'))
 
@@ -439,7 +443,7 @@ configure_file(
 
 output = '\n'
 output += 'Configuration for gnome-terminal:\n\n'
-output += '  Version:            ' + gt_version + '\n'
+output += '  Version:            ' + gt_version_display + '\n'
 output += '\n'
 output += '  C compiler:         ' + cc.get_id() + ' (version ' + cc.version() + ')\n'
 output += '  C++ compiler:       ' + cxx.get_id() + ' (version ' + cxx.version() + ')\n'

@@ -18,10 +18,10 @@ public_icons_themes = [
 ]
 
 public_icons_sources = [
-  'hicolor_apps_scalable_my.GnomeTerminal.svg',
-  'hicolor_apps_scalable_my.GnomeTerminal.Preferences.svg',
-  'hicolor_apps_symbolic_my.GnomeTerminal-symbolic.svg',
-  'hicolor_apps_symbolic_my.GnomeTerminal.Preferences-symbolic.svg',
+  'hicolor_apps_scalable_org.gnome.MyTerminal.svg',
+  'hicolor_apps_scalable_org.gnome.MyTerminal.Preferences.svg',
+  'hicolor_apps_symbolic_org.gnome.MyTerminal-symbolic.svg',
+  'hicolor_apps_symbolic_org.gnome.MyTerminal.Preferences-symbolic.svg',
 ]
 
 public_icons_renames = []

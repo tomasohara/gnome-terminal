@@ -27,10 +27,10 @@ enum {
   _EXIT_FAILURE_GTK_INIT = 10
 };
 
-#define TERMINAL_APPLICATION_ID                 "my.GnomeTerminal"
+#define TERMINAL_APPLICATION_ID                 "org.gnome.MyTerminal"
 
-#define TERMINAL_OBJECT_PATH_PREFIX             "/org/gnome/Terminal"
-#define TERMINAL_OBJECT_INTERFACE_PREFIX        "org.gnome.Terminal"
+#define TERMINAL_OBJECT_PATH_PREFIX             "/org/gnome/MyTerminal"
+#define TERMINAL_OBJECT_INTERFACE_PREFIX        "org.gnome.MyTerminal"
 
 #define TERMINAL_FACTORY_OBJECT_PATH            TERMINAL_OBJECT_PATH_PREFIX "/Factory0"
 #define TERMINAL_FACTORY_INTERFACE_NAME         TERMINAL_OBJECT_INTERFACE_PREFIX ".Factory0"
@@ -40,7 +40,7 @@ enum {
 
 #define TERMINAL_SEARCH_PROVIDER_PATH           TERMINAL_OBJECT_PATH_PREFIX "/SearchProvider"
 
-#define TERMINAL_SETTINGS_BRIDGE_INTERFACE_NAME "org.gnome.Terminal.SettingsBridge0"
+#define TERMINAL_SETTINGS_BRIDGE_INTERFACE_NAME "org.gnome.MyTerminal.SettingsBridge0"
 #define TERMINAL_SETTINGS_BRIDGE_OBJECT_PATH    TERMINAL_OBJECT_PATH_PREFIX "/SettingsBridge"
 
 #define TERMINAL_PREFERENCES_APPLICATION_ID     TERMINAL_APPLICATION_ID ".Preferences"

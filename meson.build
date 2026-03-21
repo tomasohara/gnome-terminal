@@ -34,7 +34,7 @@ project(
 # Naming
 
 gt_name     = 'my-gnome-terminal'
-gt_dns_name = 'my.GnomeTerminal'
+gt_dns_name = 'org.gnome.MyTerminal'
 
 # Compiler requirements
 

@@ -24,13 +24,13 @@ G_BEGIN_DECLS
 
 #define TERMINAL_SCHEMA_VERSION         (3u)
 
-#define TERMINAL_KEYBINDINGS_SCHEMA     "org.gnome.Terminal.Legacy.Keybindings"
-#define TERMINAL_PROFILE_SCHEMA         "org.gnome.Terminal.Legacy.Profile"
-#define TERMINAL_SETTING_SCHEMA         "org.gnome.Terminal.Legacy.Settings"
-#define TERMINAL_SETTINGS_LIST_SCHEMA   "org.gnome.Terminal.SettingsList"
-#define TERMINAL_PROFILES_LIST_SCHEMA   "org.gnome.Terminal.ProfilesList"
+#define TERMINAL_KEYBINDINGS_SCHEMA     "org.gnome.MyTerminal.Legacy.Keybindings"
+#define TERMINAL_PROFILE_SCHEMA         "org.gnome.MyTerminal.Legacy.Profile"
+#define TERMINAL_SETTING_SCHEMA         "org.gnome.MyTerminal.Legacy.Settings"
+#define TERMINAL_SETTINGS_LIST_SCHEMA   "org.gnome.MyTerminal.SettingsList"
+#define TERMINAL_PROFILES_LIST_SCHEMA   "org.gnome.MyTerminal.ProfilesList"
 
-#define TERMINAL_KEYBINDINGS_SCHEMA_PATH "/org/gnome/terminal/legacy/keybindings/"
+#define TERMINAL_KEYBINDINGS_SCHEMA_PATH "/org/gnome/my-terminal/legacy/keybindings/"
 
 #define TERMINAL_PROFILE_AUDIBLE_BELL_KEY               "audible-bell"
 #define TERMINAL_PROFILE_BOLD_IS_BRIGHT_KEY             "bold-is-bright"
@@ -99,7 +99,7 @@ G_BEGIN_DECLS
 #define TERMINAL_SETTINGS_LIST_LIST_KEY                 "list"
 #define TERMINAL_SETTINGS_LIST_DEFAULT_KEY              "default"
 
-#define TERMINAL_PROFILES_PATH_PREFIX   "/org/gnome/terminal/legacy/profiles:/"
+#define TERMINAL_PROFILES_PATH_PREFIX   "/org/gnome/my-terminal/legacy/profiles:/"
 
 G_END_DECLS
 

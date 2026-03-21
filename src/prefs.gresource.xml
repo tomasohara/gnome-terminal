@@ -16,7 +16,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 <gresources>
-  <gresource prefix="/org/gnome/terminal">
+  <gresource prefix="/org/gnome/my-terminal">
     <file alias="css/terminal.css" compressed="true">terminal.common.css</file>
     <file alias="ui/preferences.ui" compressed="true" preprocess="xml-stripblanks">preferences.ui</file>
   </gresource>

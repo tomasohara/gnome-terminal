@@ -30,18 +30,35 @@
 <component
   xmlns="https://specifications.freedesktop.org/metainfo/1.0"
   xmlns:xi="http://www.w3.org/2001/XInclude"
-  type="addon">
-  <id>org.gnome.Terminal.Nautilus</id>
-  <extends>org.gnome.Nautilus.desktop</extends>
+  type="desktop-application">
+  <id>org.gnome.MyTerminal.desktop</id>
   <metadata_license>GPL-3.0+ or GFDL-1.3-only</metadata_license>
   <project_license>GPL-3.0+</project_license>
-  <name>Terminal plugin for Files</name>
-  <summary>Open a terminal from Files</summary>
+  <name>my-gterm</name>
+  <summary>Use the command line</summary>
   <description>
-    <p>Open Terminal is a plugin for the Files application that adds a menu item to the context menu to open a terminal in the currently browsed directory.</p>
+    <p>GNOME Terminal is a terminal emulator application for accessing a UNIX shell environment which can be used to run programs available on your system.</p>
+    <p>It supports several profiles, multiple tabs and implements several keyboard shortcuts.</p>
   </description>
+  <recommends>
+    <control>console</control>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </recommends>
+  <screenshots>
+    <screenshot type="default">
+      <image type="source">https://help.gnome.org/users/gnome-terminal/stable/figures/gnome-terminal.png</image>
+  </screenshot>
+  </screenshots>
+  <kudos>
+    <kudo>HiDpiIcon</kudo>
+    <kudo>HighContrast</kudo>
+    <kudo>ModernToolkit</kudo>
+    <kudo>SearchProvider</kudo>
+    <kudo>UserDocs</kudo>
+  </kudos>
   <url type="homepage">https://wiki.gnome.org/Apps/Terminal</url>
   <project_group>GNOME</project_group>
   <update_contact>https://wiki.gnome.org/Apps/Terminal/ReportingBugs</update_contact>
-  <translation type="gettext">gnome-terminal</translation>
+  <launchable type="desktop-id">org.gnome.MyTerminal.desktop</launchable>
 </component>

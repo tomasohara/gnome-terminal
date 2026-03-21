@@ -92,7 +92,7 @@ static GType terminal_nautilus_menu_item_get_type (void);
 
 /* --- */
 
-#define TERMINAL_ICON_NAME "org.gnome.Terminal"
+#define TERMINAL_ICON_NAME "org.gnome.MyTerminal"
 
 typedef enum {
   /* local files. Always open "conventionally", i.e. cd and spawn. */

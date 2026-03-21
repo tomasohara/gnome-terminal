@@ -1178,7 +1178,7 @@ terminal_options_parse (int *argcp,
   /* Route --no-xterm-title invocations to our installed server.
    * The parent terminal session sets GNOME_TERMINAL_SERVICE=:1.xx and
    * GNOME_TERMINAL_SERVER_APP_ID (legacy), both of which would otherwise
-   * route to the system org.gnome.Terminal server that ignores no-xterm-title.
+   * route to the system org.gnome.MyTerminal server that ignores no-xterm-title.
    * Force our TERMINAL_APPLICATION_ID and clear server_unique_name so
    * factory_proxy_new() uses our D-Bus auto-activated server.
    */
@@ -1796,7 +1796,7 @@ get_goption_context (TerminalOptions *options)
     "  my-gnome-terminal --title 'project-B' --no-xterm-title -- bash\n"
     "\n"
     "  No server pre-launch needed: the server auto-activates via D-Bus\n"
-    "  (~/.local/share/dbus-1/services/my.GnomeTerminal.service).\n"
+    "  (~/.local/share/dbus-1/services/org.gnome.MyTerminal.service).\n"
     "  If GNOME_TERMINAL_SERVER_APP_ID is set from old testing, unset it.\n");
 
   g_option_context_add_group (context, gtk_get_option_group (TRUE));

@@ -2383,7 +2383,7 @@ terminal_window_class_init (TerminalWindowClass *klass)
 
   g_type_class_add_private (object_class, sizeof (TerminalWindowPrivate));
 
-  gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/terminal/ui/window.ui");
+  gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/my-terminal/ui/window.ui");
 
   gtk_widget_class_set_css_name(widget_class, TERMINAL_WINDOW_CSS_NAME);
 }
@@ -2812,7 +2812,7 @@ notebook_show_context_menu (TerminalWindow *window,
 {
   /* Load the UI */
   gs_unref_object GMenu *menu;
-  terminal_util_load_objects_resource ("/org/gnome/terminal/ui/notebook-menu.ui",
+  terminal_util_load_objects_resource ("/org/gnome/my-terminal/ui/notebook-menu.ui",
                                        "notebook-popup", &menu,
                                        nullptr);
 

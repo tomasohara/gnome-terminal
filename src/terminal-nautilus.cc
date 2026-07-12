@@ -92,7 +92,7 @@ static GType terminal_nautilus_menu_item_get_type (void);
 
 /* --- */
 
-#define TERMINAL_ICON_NAME "org.gnome.Terminal"
+#define TERMINAL_ICON_NAME "org.gnome.MyTerminal"
 
 typedef enum {
   /* local files. Always open "conventionally", i.e. cd and spawn. */
@@ -340,7 +340,8 @@ create_terminal (ExecData *data /* transfer full */)
                                                   nullptr /* title */,
                                                   TRUE, /* active */
                                                   FALSE /* maximised */,
-                                                  FALSE /* fullscreen */);
+                                                  FALSE /* fullscreen */,
+                                                  FALSE /* no_xterm_title */);
 
   if (!terminal_factory_call_create_instance_sync
          (factory,

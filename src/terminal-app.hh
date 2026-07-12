@@ -26,9 +26,9 @@
 
 G_BEGIN_DECLS
 
-#define GNOME_TERMINAL_ICON_NAME "org.gnome.Terminal"
+#define GNOME_TERMINAL_ICON_NAME "org.gnome.MyTerminal"
 
-#define TERMINAL_RESOURCES_PATH_PREFIX "/org/gnome/terminal"
+#define TERMINAL_RESOURCES_PATH_PREFIX "/org/gnome/my-terminal"
 
 #define MONOSPACE_FONT_KEY_NAME                 "monospace-font-name"
 

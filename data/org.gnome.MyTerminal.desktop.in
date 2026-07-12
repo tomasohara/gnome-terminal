@@ -1,0 +1,22 @@
+[Desktop Entry]
+Name=my-gterm
+Comment=Use the command line
+Keywords=shell;prompt;command;commandline;cmd;
+TryExec=my-gnome-terminal
+Exec=my-gnome-terminal
+Icon=org.gnome.MyTerminal
+Type=Application
+Categories=GNOME;GTK;System;TerminalEmulator;
+StartupNotify=true
+StartupWMClass=My-gnome-terminal
+SingleMainWindow=false
+Actions=new-window;preferences;
+X-ExecArg=--
+
+[Desktop Action new-window]
+Name=New Window
+Exec=my-gnome-terminal --window
+
+[Desktop Action preferences]
+Name=Preferences
+Exec=my-gnome-terminal --preferences

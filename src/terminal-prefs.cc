@@ -755,7 +755,7 @@ terminal_prefs_show_preferences(GSettings* profile,
   data->profiles_list = terminal_app_get_profiles_list (app);
 
   /* FIXME this method is only used from here. Inline it here instead. */
-  data->builder = terminal_util_load_widgets_resource ("/org/gnome/terminal/ui/preferences.ui",
+  data->builder = terminal_util_load_widgets_resource ("/org/gnome/my-terminal/ui/preferences.ui",
                                        "preferences-dialog",
                                        "preferences-dialog", &dialog,
                                        "dialogue-content-box", &content_box,

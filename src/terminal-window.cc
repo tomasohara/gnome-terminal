@@ -410,7 +410,8 @@ action_new_terminal_cb (GSimpleAction *action,
 
   TerminalScreen *screen = terminal_screen_new (profile,
                                                 nullptr /* title */,
-                                                1.0);
+                                                1.0,
+                                                FALSE /* no_xterm_title */);
 
   /* Now add the new screen to the window */
   terminal_window_add_screen (window, screen, -1);
@@ -2204,7 +2205,13 @@ terminal_window_init (TerminalWindow *window)
     gtk_window_set_titlebar (GTK_WINDOW (window), headerbar);
   }
 
-  gtk_window_set_title (GTK_WINDOW (window), _("Terminal"));
+  // TPO: use G_DEFAULT_TITLE env var if set, otherwise fall back to "Terminal"
+  {
+    const char *env_default_title = g_getenv ("G_DEFAULT_TITLE");
+    g_printerr ("TPO terminal_window_init: G_DEFAULT_TITLE=%s\n",
+                             env_default_title ? env_default_title : "(unset)");
+    gtk_window_set_title (GTK_WINDOW (window), env_default_title ? env_default_title : _("Terminal"));
+  }
 
   priv->active_screen = nullptr;
 
@@ -2518,8 +2525,44 @@ sync_screen_title (TerminalScreen *screen,
     return;
 
   title = terminal_screen_get_title (screen);
+
+
+  // TPO: read G_DEFAULT_TITLE early so it's available in both the
+  // early-return path and the normal path below.
+  const char *env_title = g_getenv ("G_DEFAULT_TITLE");
+  g_printerr ("TPO sync_screen_title: G_DEFAULT_TITLE=%s vte_title=%s\n",
+                           env_title ? env_title : "(unset)",
+                           title ? title : "(null)");
+
+  // TPO: check per-screen flag (new client-side path) first, then fall back
+  // to the legacy server-side env var so both approaches work side-by-side.
+  gboolean no_xterm = terminal_screen_get_no_xterm_title (screen);
+  if (!no_xterm) {
+    const char *env_disable = g_getenv ("G_DISABLE_TITLE_SYNC");
+    g_printerr ("TPO sync_screen_title: G_DISABLE_TITLE_SYNC=%s\n",
+                             env_disable ? env_disable : "(unset)");
+    no_xterm = (env_disable && atoi (env_disable));
+  }
+  if (no_xterm) {
+      // Use per-screen fixed title (from --title), then G_DEFAULT_TITLE, then "Terminal"
+      const char *fixed = terminal_screen_get_fixed_title (screen);
+      if (!fixed) fixed = env_title;
+      g_printerr ("TPO sync_screen_title: blocking xterm title update;"
+                               " fixed_title=%s\n", fixed ? fixed : "(null)");
+      /* Sanity: warn if neither --title nor G_DEFAULT_TITLE provided a label */
+      if (fixed == nullptr)
+        g_printerr ("TPO sync_screen_title: no fixed title available;"
+                                 " falling back to \"Terminal\"\n");
+      gtk_window_set_title (GTK_WINDOW (window), fixed ? fixed : _("Terminal"));
+      return;
+  }
+
+  // OLD:
+  // gtk_window_set_title (GTK_WINDOW (window),
+  //                      title && title[0] ? title : _("Terminal"));
   gtk_window_set_title (GTK_WINDOW (window),
-                        title && title[0] ? title : _("Terminal"));
+                        title && title[0] ? title
+                                          : (env_title ? env_title : _("Terminal")));
 }
 
 static void

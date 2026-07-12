@@ -507,7 +507,16 @@ terminal_factory_impl_create_instance (TerminalFactory *factory,
   g_assert_nonnull (profile);
 
   /* Now we can create the new screen */
-  TerminalScreen *screen = terminal_screen_new (profile, title, zoom);
+  gboolean no_xterm_title = FALSE;
+  g_variant_lookup (options, "no-xterm-title", "b", &no_xterm_title);
+  g_printerr ("TPO create_instance: title=%s no_xterm_title=%d\n",
+                           title ? title : "(null)", no_xterm_title);
+  /* Sanity: no-xterm-title without a title means the window gets "Terminal"
+   * or G_DEFAULT_TITLE; not necessarily wrong, but worth noting. */
+  if (no_xterm_title && (title == nullptr || title[0] == '\0'))
+    g_printerr ("TPO create_instance: no_xterm_title=1 but title is empty;"
+                             " window label will come from G_DEFAULT_TITLE or default\n");
+  TerminalScreen *screen = terminal_screen_new (profile, title, zoom, no_xterm_title);
   terminal_window_add_screen (window, screen, -1);
 
   /* Apply window properties */

@@ -45,8 +45,28 @@
 
 static char *app_id = nullptr;
 
-#define INACTIVITY_TIMEOUT (100 /* ms */)
+/* TPO: Default inactivity timeout raised to 30s so the server stays alive long
+ * enough for a client to connect after a manual launch.  The stock 100ms is
+ * fine for D-Bus auto-activation (client and server start together) but
+ * causes an immediate exit when the server is pre-launched by hand.
+ * Override with GNOME_TERMINAL_INACTIVITY_TIMEOUT_MS=<ms> in the environment.
+ */
+#define INACTIVITY_TIMEOUT_DEFAULT_MS (30000 /* ms = 30s */)
 
+static guint
+get_inactivity_timeout (void)
+{
+  const char *env = g_getenv ("GNOME_TERMINAL_INACTIVITY_TIMEOUT_MS");
+  if (env) {
+    gint64 v = g_ascii_strtoll (env, nullptr, 10);
+    if (v > 0 && v <= G_MAXINT) {
+      g_printerr ("TPO server: inactivity timeout set to %dms"
+                  " (GNOME_TERMINAL_INACTIVITY_TIMEOUT_MS)\n", (int)v);
+      return (guint)v;
+    }
+  }
+  return INACTIVITY_TIMEOUT_DEFAULT_MS;
+}
 
 #include <dlfcn.h>
 
@@ -204,7 +224,10 @@ init_server (int argc,
   app_id = nullptr;
 
   /* We stay around a bit after the last window closed */
-  g_application_set_inactivity_timeout (app, INACTIVITY_TIMEOUT);
+  guint inactivity_ms = get_inactivity_timeout ();
+  g_application_set_inactivity_timeout (app, inactivity_ms);
+  g_printerr ("TPO server: starting with app-id=%s inactivity_timeout=%ums\n",
+              g_application_get_application_id (app), inactivity_ms);
 
   *application = app;
   return 0;
@@ -214,14 +237,36 @@ int
 main (int argc,
       char *argv[])
 {
+  g_printerr ("TPO server: main() entered (pid=%d)\n", (int)getpid ());
   gs_unref_object GApplication *app = nullptr;
   int r = init_server (argc, argv, &app);
   if (r != 0)
     return r;
 
+  /* TPO: For G_APPLICATION_IS_SERVICE the inactivity timeout only starts
+   * counting down after the first g_application_hold()+release() cycle.
+   * Without an initial hold the server exits immediately when no client is
+   * already connected.  Hold now so the server survives long enough for the
+   * first client to connect via D-Bus auto-activation, then release (which
+   * arms the inactivity timer) after the same interval.
+   */
+  guint startup_secs = get_inactivity_timeout () / 1000 + 5;
+  g_application_hold (app);
+  g_timeout_add_seconds (startup_secs,
+                         [] (gpointer data) -> gboolean {
+                           g_printerr ("TPO server: startup hold released"
+                                       " (inactivity timer now active)\n");
+                           g_application_release (G_APPLICATION (data));
+                           return G_SOURCE_REMOVE;
+                         },
+                         app);
+  g_printerr ("TPO server: startup hold active for %us\n", startup_secs);
+
   /* Note that this flushes the D-Bus connection just before quitting,
    * thus ensuring that all pending signal emissions (e.g. child-exited)
    * are delivered.
    */
-  return g_application_run (app, 0, nullptr);
+  int rv = g_application_run (app, 0, nullptr);
+  g_printerr ("TPO server: g_application_run exited (rv=%d)\n", rv);
+  return rv;
 }

@@ -31,7 +31,7 @@
   xmlns="https://specifications.freedesktop.org/metainfo/1.0"
   xmlns:xi="http://www.w3.org/2001/XInclude"
   type="addon">
-  <id>org.gnome.MyTerminal.Nautilus</id>
+  <id>org.gnome.Terminal.Nautilus</id>
   <extends>org.gnome.Nautilus.desktop</extends>
   <metadata_license>GPL-3.0+ or GFDL-1.3-only</metadata_license>
   <project_license>GPL-3.0+</project_license>

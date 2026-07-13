@@ -300,8 +300,8 @@ popup_menu_selection_done_cb (GtkMenu *menu,
                               gpointer user_data)
 {
   g_signal_handlers_disconnect_by_func(menu,
-                                       (void*)popup_menu_selection_done_cb,
-                                       user_data);
+				       (void*)popup_menu_selection_done_cb,
+				       user_data);
 
   /* g_printerr ("selection-done %p\n", menu); */
 
@@ -371,7 +371,7 @@ action_new_terminal_cb (GSimpleAction *action,
     can_toggle = TRUE;
   } else {
     mode = TerminalNewTerminalMode(g_settings_get_enum (terminal_app_get_global_settings (app),
-                                                      TERMINAL_SETTING_NEW_TERMINAL_MODE_KEY));
+						      TERMINAL_SETTING_NEW_TERMINAL_MODE_KEY));
     can_toggle = TRUE;
   }
 
@@ -429,8 +429,8 @@ action_new_terminal_cb (GSimpleAction *action,
 
 static void
 save_contents_dialog_on_response (GtkDialog *dialog,
-                                  int response_id,
-                                  gpointer user_data)
+				  int response_id,
+				  gpointer user_data)
 {
   VteTerminal *terminal = (VteTerminal*)user_data;
   GtkWindow *parent;
@@ -464,15 +464,15 @@ save_contents_dialog_on_response (GtkDialog *dialog,
        * Should be replaced with the async version when vte implements that.
        */
       vte_terminal_write_contents_sync (terminal, stream,
-                                        VTE_WRITE_DEFAULT,
-                                        nullptr, &error);
+					VTE_WRITE_DEFAULT,
+					nullptr, &error);
       g_object_unref (stream);
     }
 
   if (error)
     {
       terminal_util_show_error_dialog (parent, nullptr, error,
-                                       "%s", _("Could not save contents"));
+				       "%s", _("Could not save contents"));
     }
 }
 
@@ -2323,7 +2323,7 @@ terminal_window_init (TerminalWindow *window)
                      action,
                      "enabled",
                      GSettingsBindFlags(G_SETTINGS_BIND_GET |
-                                        G_SETTINGS_BIND_NO_SENSITIVITY));
+					G_SETTINGS_BIND_NO_SENSITIVITY));
   else
     g_simple_action_set_enabled (action, FALSE);
 
@@ -2492,9 +2492,9 @@ terminal_window_new (GApplication *app)
 {
   return reinterpret_cast<TerminalWindow*>
     (g_object_new (TERMINAL_TYPE_WINDOW,
-                   "application", app,
-                   "show-menubar", FALSE,
-                   nullptr));
+		   "application", app,
+		   "show-menubar", FALSE,
+		   nullptr));
 }
 
 static void
@@ -2638,7 +2638,7 @@ terminal_window_add_screen (TerminalWindow *window,
     GSettings *global_settings = terminal_app_get_global_settings (terminal_app_get ());
     TerminalNewTabPosition position_pref = TerminalNewTabPosition
       (g_settings_get_enum (global_settings,
-                            TERMINAL_SETTING_NEW_TAB_POSITION_KEY));
+			    TERMINAL_SETTING_NEW_TAB_POSITION_KEY));
     switch (position_pref) {
     case TERMINAL_NEW_TAB_POSITION_NEXT:
       position = terminal_window_get_active_screen_num (window) + 1;
@@ -3092,7 +3092,7 @@ mdi_screens_reordered_cb (TerminalMdiContainer *container,
 
 gboolean
 terminal_window_parse_geometry (TerminalWindow *window,
-                                const char     *geometry)
+				const char     *geometry)
 {
   TerminalWindowPrivate *priv = window->priv;
 
@@ -3121,7 +3121,7 @@ terminal_window_parse_geometry (TerminalWindow *window,
       gtk_window_get_default_size (GTK_WINDOW (window), &grid_width, &grid_height);
 
       vte_terminal_set_size (VTE_TERMINAL (priv->active_screen),
-                             grid_width, grid_height);
+			     grid_width, grid_height);
     }
 
   return TRUE;
@@ -3248,8 +3248,8 @@ terminal_window_update_geometry (TerminalWindow *window)
                                      nullptr,
                                      hints,
                                      GdkWindowHints(GDK_HINT_RESIZE_INC |
-                                                    GDK_HINT_MIN_SIZE |
-                                                    GDK_HINT_BASE_SIZE));
+						    GDK_HINT_MIN_SIZE |
+						    GDK_HINT_BASE_SIZE));
 
       _terminal_debug_print (TERMINAL_DEBUG_GEOMETRY,
                              "[window %p] hints: base %dx%d min %dx%d inc %d %d\n",
@@ -3360,7 +3360,7 @@ confirm_close_window_or_tab (TerminalWindow *window,
   dialog = priv->confirm_close_dialog =
     gtk_message_dialog_new (GTK_WINDOW (window),
                             GtkDialogFlags(GTK_DIALOG_MODAL |
-                                           GTK_DIALOG_DESTROY_WITH_PARENT),
+					   GTK_DIALOG_DESTROY_WITH_PARENT),
                             GTK_MESSAGE_WARNING,
                             GTK_BUTTONS_CANCEL,
                             "%s", n_tabs > 1 ? _("Close this window?") : _("Close this terminal?"));

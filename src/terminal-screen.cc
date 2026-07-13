@@ -523,8 +523,8 @@ terminal_screen_init (TerminalScreen *screen)
 
   gtk_drag_dest_set (GTK_WIDGET (screen),
                      GtkDestDefaults(GTK_DEST_DEFAULT_MOTION |
-				     GTK_DEST_DEFAULT_HIGHLIGHT |
-				     GTK_DEST_DEFAULT_DROP),
+                                     GTK_DEST_DEFAULT_HIGHLIGHT |
+                                     GTK_DEST_DEFAULT_DROP),
                      targets, n_targets,
                      GdkDragAction(GDK_ACTION_COPY | GDK_ACTION_MOVE));
 
@@ -669,9 +669,9 @@ terminal_screen_class_init (TerminalScreenClass *klass)
      g_param_spec_object ("profile", nullptr, nullptr,
                           G_TYPE_SETTINGS,
                           GParamFlags(G_PARAM_READWRITE |
-				      G_PARAM_STATIC_NAME |
-				      G_PARAM_STATIC_NICK |
-				      G_PARAM_STATIC_BLURB)));
+                                      G_PARAM_STATIC_NAME |
+                                      G_PARAM_STATIC_NICK |
+                                      G_PARAM_STATIC_BLURB)));
 
   g_object_class_install_property
     (object_class,
@@ -679,9 +679,9 @@ terminal_screen_class_init (TerminalScreenClass *klass)
      g_param_spec_string ("title", nullptr, nullptr,
                           nullptr,
                           GParamFlags(G_PARAM_READABLE |
-				      G_PARAM_STATIC_NAME |
-				      G_PARAM_STATIC_NICK |
-				      G_PARAM_STATIC_BLURB)));
+                                      G_PARAM_STATIC_NAME |
+                                      G_PARAM_STATIC_NICK |
+                                      G_PARAM_STATIC_BLURB)));
 
   g_type_class_add_private (object_class, sizeof (TerminalScreenPrivate));
 
@@ -983,7 +983,7 @@ terminal_screen_exec (TerminalScreen *screen,
 
   gboolean preserve_cwd = FALSE;
   GSpawnFlags spawn_flags = GSpawnFlags(G_SPAWN_SEARCH_PATH_FROM_ENVP |
-					VTE_SPAWN_NO_PARENT_ENVV);
+                                        VTE_SPAWN_NO_PARENT_ENVV);
   gs_strfreev char **exec_argv = nullptr;
   if (!terminal_screen_get_child_command (screen,
                                           argv,
@@ -1131,7 +1131,7 @@ terminal_screen_profile_changed_cb (GSettings     *profile,
       prop_name == I_(TERMINAL_PROFILE_SCROLLBACK_UNLIMITED_KEY))
     {
       glong lines = g_settings_get_boolean (profile, TERMINAL_PROFILE_SCROLLBACK_UNLIMITED_KEY) ?
-		    -1 : g_settings_get_int (profile, TERMINAL_PROFILE_SCROLLBACK_LINES_KEY);
+                    -1 : g_settings_get_int (profile, TERMINAL_PROFILE_SCROLLBACK_LINES_KEY);
       vte_terminal_set_scrollback_lines (vte_terminal, lines);
     }
 
@@ -2175,8 +2175,8 @@ _terminal_screen_update_scrollbar (TerminalScreen *screen)
 
 void
 terminal_screen_get_size (TerminalScreen *screen,
-			  int       *width_chars,
-			  int       *height_chars)
+                          int       *width_chars,
+                          int       *height_chars)
 {
   VteTerminal *terminal = VTE_TERMINAL (screen);
 
@@ -2186,8 +2186,8 @@ terminal_screen_get_size (TerminalScreen *screen,
 
 void
 terminal_screen_get_cell_size (TerminalScreen *screen,
-			       int                  *cell_width_pixels,
-			       int                  *cell_height_pixels)
+                               int                  *cell_width_pixels,
+                               int                  *cell_height_pixels)
 {
   VteTerminal *terminal = VTE_TERMINAL (screen);
 
@@ -2217,11 +2217,11 @@ terminal_screen_check_match (TerminalScreen *screen,
     {
       TagData *tag_data = (TagData*) tags->data;
       if (tag_data->tag == tag)
-	{
-	  if (flavor)
-	    *flavor = tag_data->flavor;
-	  return match;
-	}
+        {
+          if (flavor)
+            *flavor = tag_data->flavor;
+          return match;
+        }
     }
 
   g_free (match);

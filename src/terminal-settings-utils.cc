@@ -18,6 +18,8 @@
 #include "config.h"
 #define G_SETTINGS_ENABLE_BACKEND
 
+#include <stdlib.h>
+
 #include <gio/gsettingsbackend.h>
 
 #include "terminal-settings-utils.hh"
@@ -580,7 +582,46 @@ schemas_source_verify(GSettingsSchemaSource* source,
 GSettingsSchemaSource*
 terminal_g_settings_schema_source_get_default(void)
 {
+  /* TPO_EXPERIMENTAL: schema lookup & XDG_DATA_DIRS fallback.
+   * Added by another agent session (not vetted here) to fix
+   * org.gnome.MyTerminal.ProfilesList failing to verify/load when installed
+   * under a non-standard prefix that isn't on the session's XDG_DATA_DIRS
+   * search path:
+   *   - Prepends TERM_DATADIR (e.g. /tpo/share) to XDG_DATA_DIRS.
+   *   - Explicitly builds a schema source from TERM_DATADIR/glib-2.0/schemas
+   *     so the installed schemas verify and load instead of falling back
+   *     or failing outright.
+   * Gated behind TPO_EXPERIMENTAL=1 and disabled by default until reviewed;
+   * when disabled, custom_default_source below is just default_source and
+   * behaviour is unchanged from before this addition. */
+  const char *tpo_experimental = g_getenv ("TPO_EXPERIMENTAL");
+  gboolean tpo_experimental_enabled = tpo_experimental && atoi (tpo_experimental);
+
+  if (tpo_experimental_enabled) {
+    const char *old_xdg = g_getenv("XDG_DATA_DIRS");
+    if (!old_xdg || !strstr(old_xdg, TERM_DATADIR)) {
+      char *new_xdg = (old_xdg && *old_xdg) ? g_strdup_printf("%s:%s", TERM_DATADIR, old_xdg)
+                                            : g_strdup_printf("%s:/usr/local/share:/usr/share", TERM_DATADIR);
+      g_setenv("XDG_DATA_DIRS", new_xdg, TRUE);
+      g_free(new_xdg);
+    }
+  }
+
   GSettingsSchemaSource* default_source = g_settings_schema_source_get_default();
+
+  GSettingsSchemaSource *custom_default_source = nullptr;
+  if (tpo_experimental_enabled) {
+    gs_free char *schema_dir_installed = g_build_filename(TERM_DATADIR, "glib-2.0", "schemas", nullptr);
+    if (g_file_test(schema_dir_installed, G_FILE_TEST_IS_DIR)) {
+      gs_free_error GError *dir_err = nullptr;
+      custom_default_source = g_settings_schema_source_new_from_directory(schema_dir_installed,
+                                                                           default_source,
+                                                                           FALSE /* trusted */,
+                                                                           &dir_err);
+    }
+  }
+  if (!custom_default_source)
+    custom_default_source = g_settings_schema_source_ref(default_source);
 
   gs_free auto schema_dir =
     terminal_client_get_directory_uninstalled(
@@ -609,20 +650,21 @@ terminal_g_settings_schema_source_get_default(void)
                "Using unverified installed schemas.\n",
                error->message);
 
-    return g_settings_schema_source_ref(default_source);
+    return custom_default_source; // transfer if TPO_EXPERIMENTAL
   }
 
-  if (!schemas_source_verify(default_source, reference_source, &error)) {
+  if (!schemas_source_verify(custom_default_source, reference_source, &error)) {
     g_printerr("Installed schemas failed verification: %s\n"
                "Falling back to built-in reference schemas.\n",
                error->message);
 
-    return reference_source; /* transfer */
+    g_settings_schema_source_unref(custom_default_source);
+    return reference_source; // transfer if TPO_EXPERIMENTAL
   }
 
   /* Installed schemas verified; use them. */
   g_settings_schema_source_unref(reference_source);
-  return g_settings_schema_source_ref(default_source);
+  return custom_default_source; // transfer if TPO_EXPERIMENTAL
 }
 
 // BEGIN copied from glib/gio/gsettingsbackend.c

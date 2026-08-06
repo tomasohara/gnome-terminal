@@ -116,6 +116,9 @@ struct _TerminalScreenPrivate
   /* TPO: per-screen xterm title blocking */
   gboolean no_xterm_title; /* when TRUE, ignore xterm title-change escape sequences */
   char *fixed_title;       /* title locked in from --title when no_xterm_title is set */
+
+  /* TPO: per-screen mouse-reporting blocking */
+  gboolean disable_mouse;  /* when TRUE, never forward mouse buttons to the application */
 };
 
 enum
@@ -160,6 +163,8 @@ static void terminal_screen_system_font_changed_cb (GSettings *,
 static gboolean terminal_screen_popup_menu (GtkWidget *widget);
 static gboolean terminal_screen_button_press (GtkWidget *widget,
                                               GdkEventButton *event);
+static gboolean terminal_screen_button_release (GtkWidget *widget,
+                                                GdkEventButton *event);
 static void terminal_screen_child_exited  (VteTerminal *terminal,
                                            int status);
 
@@ -618,6 +623,7 @@ terminal_screen_class_init (TerminalScreenClass *klass)
   widget_class->style_updated = terminal_screen_style_updated;
   widget_class->drag_data_received = terminal_screen_drag_data_received;
   widget_class->button_press_event = terminal_screen_button_press;
+  widget_class->button_release_event = terminal_screen_button_release; /* TPO: --disable-mouse */
   widget_class->popup_menu = terminal_screen_popup_menu;
 
   terminal_class->child_exited = terminal_screen_child_exited;
@@ -771,7 +777,8 @@ TerminalScreen *
 terminal_screen_new (GSettings       *profile,
                      const char      *title,
                      double           zoom,
-                     gboolean         no_xterm_title)
+                     gboolean         no_xterm_title,
+                     gboolean         disable_mouse)
 {
   g_return_val_if_fail (G_IS_SETTINGS (profile), nullptr);
 
@@ -787,8 +794,12 @@ terminal_screen_new (GSettings       *profile,
   screen->priv->no_xterm_title = no_xterm_title;
   screen->priv->fixed_title = title ? g_strdup (title) : nullptr;
 
-  g_printerr ("TPO terminal_screen_new: no_xterm_title=%d fixed_title=%s\n",
+  /* TPO: store per-screen mouse-blocking state */
+  screen->priv->disable_mouse = disable_mouse;
+
+  g_printerr ("TPO terminal_screen_new: no_xterm_title=%d disable_mouse=%d fixed_title=%s\n",
                            no_xterm_title,
+                           disable_mouse,
                            screen->priv->fixed_title ? screen->priv->fixed_title : "(null)");
 
   /* Sanity: if blocking is requested but no title provided, warn — the window
@@ -840,6 +851,13 @@ terminal_screen_get_no_xterm_title (TerminalScreen *screen)
 {
   g_return_val_if_fail (TERMINAL_IS_SCREEN (screen), FALSE);
   return screen->priv->no_xterm_title;
+}
+
+gboolean
+terminal_screen_get_disable_mouse (TerminalScreen *screen)
+{
+  g_return_val_if_fail (TERMINAL_IS_SCREEN (screen), FALSE);
+  return screen->priv->disable_mouse;
 }
 
 static gboolean
@@ -1845,8 +1863,11 @@ terminal_screen_button_press (GtkWidget      *widget,
       if (!(event->state & (GDK_SHIFT_MASK | GDK_CONTROL_MASK | GDK_MOD1_MASK)))
         {
           /* on right-click, we should first try to send the mouse event to
-           * the client, and popup only if that's not handled. */
-          if (button_press_event && button_press_event (widget, event))
+           * the client, and popup only if that's not handled.
+           * TPO: --disable-mouse: never offer the click to the client;
+           * go straight to the popup menu. */
+          if (!screen->priv->disable_mouse &&
+              button_press_event && button_press_event (widget, event))
             return TRUE;
 
           terminal_screen_do_popup (screen, event, hyperlink, url, url_flavor, number_info, timestamp_info);
@@ -1868,9 +1889,75 @@ terminal_screen_button_press (GtkWidget      *widget,
         }
     }
 
+  /* TPO: --disable-mouse: never forward button events to the application.
+   * Adding GDK_SHIFT_MASK before chaining up makes VTE take its selection
+   * and primary-paste paths (the same bypass as a physical Shift+click)
+   * instead of reporting the click via xterm mouse tracking. */
+  if (screen->priv->disable_mouse)
+    {
+      /* Right button was fully handled above (popup); anything left over
+       * (e.g. Ctrl/Alt+right-click) would be reported to the application
+       * by VTE regardless of Shift, so swallow it here. */
+      if (event->button == 3)
+        return TRUE;
+
+      /* A plain click normally clears the old selection inside VTE, but
+       * with Shift added VTE would extend the selection instead; clear it
+       * here so click-and-drag always starts a fresh selection. */
+      if (event->button == 1 &&
+          event->type == GDK_BUTTON_PRESS &&
+          !(event->state & GDK_SHIFT_MASK))
+        vte_terminal_unselect_all (VTE_TERMINAL (screen));
+
+      if (button_press_event)
+        {
+          GdkEvent *copy = gdk_event_copy ((GdkEvent*)event);
+          copy->button.state |= GDK_SHIFT_MASK;
+          gboolean ret = button_press_event (widget, &copy->button);
+          gdk_event_free (copy);
+          return ret;
+        }
+      return FALSE;
+    }
+
   /* default behavior is to let the terminal widget deal with it */
   if (button_press_event)
     return button_press_event (widget, event);
+
+  return FALSE;
+}
+
+/* TPO: --disable-mouse: keep button releases away from xterm mouse reporting.
+ * Mirrors terminal_screen_button_press: Shift is added before chaining up so
+ * VTE finishes its selection/paste handling instead of reporting the release
+ * to the application; right-button releases are swallowed because the
+ * matching press never reached VTE. */
+static gboolean
+terminal_screen_button_release (GtkWidget      *widget,
+                                GdkEventButton *event)
+{
+  TerminalScreen *screen = TERMINAL_SCREEN (widget);
+  gboolean (* button_release_event) (GtkWidget*, GdkEventButton*) =
+    GTK_WIDGET_CLASS (terminal_screen_parent_class)->button_release_event;
+
+  if (screen->priv->disable_mouse)
+    {
+      if (event->button == 3)
+        return TRUE;
+
+      if (button_release_event)
+        {
+          GdkEvent *copy = gdk_event_copy ((GdkEvent*)event);
+          copy->button.state |= GDK_SHIFT_MASK;
+          gboolean ret = button_release_event (widget, &copy->button);
+          gdk_event_free (copy);
+          return ret;
+        }
+      return FALSE;
+    }
+
+  if (button_release_event)
+    return button_release_event (widget, event);
 
   return FALSE;
 }

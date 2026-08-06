@@ -45,7 +45,8 @@ void terminal_client_append_create_instance_options (GVariantBuilder *builder,
                                                      gboolean         active,
                                                      gboolean         maximise_window,
                                                      gboolean         fullscreen_window,
-                                                     gboolean         no_xterm_title);
+                                                     gboolean         no_xterm_title,
+                                                     gboolean         disable_mouse);
 
 typedef struct {
   int index;

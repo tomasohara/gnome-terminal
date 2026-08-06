@@ -271,6 +271,86 @@ factory_proxy_new_for_service_name (const char *service_name,
   return TRUE;
 }
 
+/* TPO_EXPERIMENTAL: D-Bus server auto-launch & service registration.
+ * Added by another agent session (not vetted here) to handle the case where
+ * org.gnome.MyTerminal isn't active on the session D-Bus — e.g. because a
+ * custom install prefix keeps the .service file out of the D-Bus
+ * auto-activation search path. Checks NameHasOwner for the target service
+ * name and, if nobody owns it, spawns TERM_LIBEXECDIR/my-gnome-terminal-server
+ * directly and polls (up to 3s) for it to claim the name.
+ * Gated behind TPO_EXPERIMENTAL=1 (see call site) and disabled by default
+ * until reviewed. */
+static gboolean
+ensure_server_running (const char *service_name)
+{
+  gs_free_error GError *error = nullptr;
+  gs_unref_object GDBusConnection *bus = g_bus_get_sync (G_BUS_TYPE_SESSION, nullptr, &error);
+  if (!bus)
+    return FALSE;
+
+  const char *target_name = service_name ? service_name : TERMINAL_APPLICATION_ID;
+
+  gs_unref_variant GVariant *has_owner = g_dbus_connection_call_sync (
+      bus,
+      "org.freedesktop.DBus",
+      "/org/freedesktop/DBus",
+      "org.freedesktop.DBus",
+      "NameHasOwner",
+      g_variant_new ("(s)", target_name),
+      G_VARIANT_TYPE ("(b)"),
+      G_DBUS_CALL_FLAGS_NONE,
+      1000,
+      nullptr,
+      nullptr);
+
+  if (has_owner) {
+    gboolean owned = FALSE;
+    g_variant_get (has_owner, "(b)", &owned);
+    if (owned)
+      return TRUE;
+  }
+
+  /* Server is not running on D-Bus. Try spawning server binary directly */
+  gs_free char *server_path = terminal_client_get_file_uninstalled (
+      TERM_BINDIR,
+      TERM_LIBEXECDIR,
+      "my-gnome-terminal-server",
+      G_FILE_TEST_IS_EXECUTABLE);
+
+  if (!server_path || !g_file_test (server_path, G_FILE_TEST_IS_EXECUTABLE))
+    return FALSE;
+
+  char *argv[] = { server_path, nullptr };
+  if (!g_spawn_async (nullptr, argv, nullptr, G_SPAWN_SEARCH_PATH, nullptr, nullptr, nullptr, &error)) {
+    return FALSE;
+  }
+
+  /* Wait up to 3 seconds for server to claim the name on D-Bus */
+  for (int i = 0; i < 30; i++) {
+    g_usleep (100000); /* 100ms */
+    gs_unref_variant GVariant *check_owner = g_dbus_connection_call_sync (
+        bus,
+        "org.freedesktop.DBus",
+        "/org/freedesktop/DBus",
+        "org.freedesktop.DBus",
+        "NameHasOwner",
+        g_variant_new ("(s)", target_name),
+        G_VARIANT_TYPE ("(b)"),
+        G_DBUS_CALL_FLAGS_NONE,
+        500,
+        nullptr,
+        nullptr);
+    if (check_owner) {
+      gboolean owned = FALSE;
+      g_variant_get (check_owner, "(b)", &owned);
+      if (owned)
+        return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
 static gboolean
 factory_proxy_new (TerminalOptions *options,
                    TerminalFactory **factory_ptr,
@@ -279,6 +359,11 @@ factory_proxy_new (TerminalOptions *options,
                    GError **error)
 {
   const char *service_name = options->server_app_id;
+
+  /* TPO_EXPERIMENTAL: opt-in only; see ensure_server_running() above. */
+  const char *tpo_experimental = g_getenv ("TPO_EXPERIMENTAL");
+  if (tpo_experimental && atoi (tpo_experimental))
+    ensure_server_running (service_name);
 
   terminal_printerr_detail ("TPO client: factory_proxy_new: server_app_id=%s server_unique_name=%s\n",
               options->server_app_id ? options->server_app_id : "(null)",
@@ -470,11 +555,13 @@ handle_options (TerminalOptions *options,
                                                           it->active,
                                                           iw->start_maximized,
                                                           iw->start_fullscreen,
-                                                          options->no_xterm_title);
-          terminal_printerr_detail ("TPO client: CreateInstance title=%s no_xterm_title=%d service=%s\n",
+                                                          options->no_xterm_title,
+                                                          options->disable_mouse);
+          terminal_printerr_detail ("TPO client: CreateInstance title=%s no_xterm_title=%d disable_mouse=%d service=%s\n",
                       (it->title ? it->title : options->default_title)
                         ? (it->title ? it->title : options->default_title) : "(null)",
                       options->no_xterm_title,
+                      options->disable_mouse,
                       service_name ? service_name : "(null)");
 
           /* This will be used to apply missing defaults */

@@ -102,6 +102,7 @@ typedef struct
   guint zoom_set : 1;
   guint wait : 1;
   guint no_xterm_title : 1; /* TPO: block xterm title-change escape sequences per-window */
+  guint disable_mouse : 1;  /* TPO: ignore application mouse-reporting per-window */
 } TerminalOptions;
 
 typedef struct

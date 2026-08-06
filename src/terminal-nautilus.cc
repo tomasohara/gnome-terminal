@@ -341,7 +341,8 @@ create_terminal (ExecData *data /* transfer full */)
                                                   TRUE, /* active */
                                                   FALSE /* maximised */,
                                                   FALSE /* fullscreen */,
-                                                  FALSE /* no_xterm_title */);
+                                                  FALSE /* no_xterm_title */,
+                                                  FALSE /* disable_mouse */);
 
   if (!terminal_factory_call_create_instance_sync
          (factory,

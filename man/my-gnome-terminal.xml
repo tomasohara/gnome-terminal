@@ -226,6 +226,27 @@
         </listitem>
       </varlistentry>
       <varlistentry>
+        <term><option>--disable-mouse</option></term>
+        <listitem>
+          <para>
+            Ignore application mouse-reporting (xterm mouse tracking) in
+            this terminal, so click-and-drag always selects text for
+            copying, without holding Shift, even in full-screen TUI
+            applications that capture the mouse. The scroll wheel and
+            keyboard input still reach the application as usual.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>--no-xterm-title</option></term>
+        <listitem>
+          <para>
+            Block xterm title-change escape sequences so the window keeps
+            the title given with <option>--title</option>.
+          </para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
         <term><option>--profile=PROFILE-NAME</option></term>
         <listitem>
           <para>

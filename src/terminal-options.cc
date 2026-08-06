@@ -849,6 +849,18 @@ option_no_xterm_title_cb (const gchar *option_name G_GNUC_UNUSED,
   return TRUE;
 }
 
+/* TPO: --disable-mouse: ignore application mouse-reporting per-window */
+static gboolean
+option_disable_mouse_cb (const gchar *option_name G_GNUC_UNUSED,
+                         const gchar *value G_GNUC_UNUSED,
+                         gpointer     data,
+                         GError     **error G_GNUC_UNUSED)
+{
+  TerminalOptions *options = (TerminalOptions*)data;
+  options->disable_mouse = TRUE;
+  return TRUE;
+}
+
 static gboolean
 option_pass_fd_cb (const gchar *option_name,
                    const gchar *value,
@@ -1175,14 +1187,16 @@ terminal_options_parse (int *argcp,
                                env_ignore  ? env_ignore  : "(unset)");
     }
   }
-  /* Route --no-xterm-title invocations to our installed server.
+  /* Route --no-xterm-title/--disable-mouse invocations to our installed server.
    * The parent terminal session sets GNOME_TERMINAL_SERVICE=:1.xx and
    * GNOME_TERMINAL_SERVER_APP_ID (legacy), both of which would otherwise
-   * route to the system org.gnome.MyTerminal server that ignores no-xterm-title.
+   * route to the system org.gnome.MyTerminal server that ignores the
+   * no-xterm-title and disable-mouse D-Bus keys.
    * Force our TERMINAL_APPLICATION_ID and clear server_unique_name so
    * factory_proxy_new() uses our D-Bus auto-activated server.
    */
-  if (options->no_xterm_title && options->server_app_id == nullptr) {
+  if ((options->no_xterm_title || options->disable_mouse) &&
+      options->server_app_id == nullptr) {
     const char *env_server_app_id = g_getenv ("GNOME_TERMINAL_SERVER_APP_ID");
     if (env_server_app_id != nullptr &&
         strcmp (env_server_app_id, TERMINAL_APPLICATION_ID) != 0) {
@@ -1195,12 +1209,13 @@ terminal_options_parse (int *argcp,
     options->server_app_id = g_strdup (TERMINAL_APPLICATION_ID);
     g_free (options->server_unique_name);
     options->server_unique_name = nullptr;
-    terminal_printerr_detail ("TPO: --no-xterm-title: routing to \"%s\","
+    terminal_printerr_detail ("TPO: --no-xterm-title/--disable-mouse: routing to \"%s\","
                              " cleared server_unique_name\n", TERMINAL_APPLICATION_ID);
   }
-  terminal_printerr_detail ("TPO: options summary: no_xterm_title=%d default_title=%s"
-                           " server_app_id=%s\n",
+  terminal_printerr_detail ("TPO: options summary: no_xterm_title=%d disable_mouse=%d"
+                           " default_title=%s server_app_id=%s\n",
                            options->no_xterm_title,
+                           options->disable_mouse,
                            options->default_title ? options->default_title : "(null)",
                            options->server_app_id ? options->server_app_id : "(null)");
 
@@ -1659,6 +1674,16 @@ get_goption_context (TerminalOptions *options)
       nullptr
     },
     {
+      /* TPO: ignore application mouse-reporting for this window */
+      "disable-mouse",
+      0,
+      G_OPTION_FLAG_NO_ARG,
+      G_OPTION_ARG_CALLBACK,
+      (void*)option_disable_mouse_cb,
+      N_("Ignore application mouse-reporting so click-and-drag always selects text (scroll wheel unaffected)"),
+      nullptr
+    },
+    {
       "fd",
       0,
       0,
@@ -1778,6 +1803,18 @@ get_goption_context (TerminalOptions *options)
 
   /* TPO: describe environment variables that influence title-blocking behaviour */
   g_option_context_set_description (context,
+    "Options added by my-gnome-terminal (also listed under --help-terminal-options):\n"
+    "  --no-xterm-title               Block xterm title-change escape sequences so\n"
+    "                                 the window keeps the title given with --title\n"
+    "                                 (useful with AI agent CLIs that rewrite the\n"
+    "                                 title, e.g. for the KDE task manager).\n"
+    "  --disable-mouse                Ignore application mouse-reporting (xterm\n"
+    "                                 mouse tracking) in this window, so click-and-\n"
+    "                                 drag always selects text for copying — no\n"
+    "                                 Shift needed even in full-screen TUI apps.\n"
+    "                                 The scroll wheel is unaffected and keyboard\n"
+    "                                 input reaches the application as usual.\n"
+    "\n"
     "Environment variables (xterm title blocking):\n"
     "  G_DEFAULT_TITLE=TITLE          Fallback window title when no --title is given\n"
     "                                 and no xterm title-change sequence has fired.\n"
@@ -1793,7 +1830,7 @@ get_goption_context (TerminalOptions *options)
     "\n"
     "Typical usage (per-window fixed titles, D-Bus auto-activation):\n"
     "  my-gnome-terminal --title 'project-A' --no-xterm-title -- bash\n"
-    "  my-gnome-terminal --title 'project-B' --no-xterm-title -- bash\n"
+    "  my-gnome-terminal --title 'project-B' --no-xterm-title --disable-mouse -- bash\n"
     "\n"
     "  No server pre-launch needed: the server auto-activates via D-Bus\n"
     "  (~/.local/share/dbus-1/services/org.gnome.MyTerminal.service).\n"

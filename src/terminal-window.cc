@@ -411,7 +411,8 @@ action_new_terminal_cb (GSimpleAction *action,
   TerminalScreen *screen = terminal_screen_new (profile,
                                                 nullptr /* title */,
                                                 1.0,
-                                                FALSE /* no_xterm_title */);
+                                                FALSE /* no_xterm_title */,
+                                                FALSE /* disable_mouse */);
 
   /* Now add the new screen to the window */
   terminal_window_add_screen (window, screen, -1);

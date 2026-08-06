@@ -166,7 +166,8 @@ terminal_client_append_create_instance_options (GVariantBuilder *builder,
                                                 gboolean         active,
                                                 gboolean         maximise_window,
                                                 gboolean         fullscreen_window,
-                                                gboolean         no_xterm_title)
+                                                gboolean         no_xterm_title,
+                                                gboolean         disable_mouse)
 {
   /* Bytestring options */
   if (display_name != nullptr)
@@ -212,6 +213,11 @@ terminal_client_append_create_instance_options (GVariantBuilder *builder,
   if (no_xterm_title)
     g_variant_builder_add (builder, "{sv}",
                            "no-xterm-title", g_variant_new_boolean (TRUE));
+
+  /* TPO: per-window mouse-reporting blocking flag */
+  if (disable_mouse)
+    g_variant_builder_add (builder, "{sv}",
+                           "disable-mouse", g_variant_new_boolean (TRUE));
 }
 
 char const* const*

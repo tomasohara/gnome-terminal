@@ -200,7 +200,9 @@ init_server (int argc,
     chdir ("/");
 #pragma GCC diagnostic pop
 
-  g_set_prgname ("gnome-terminal-server");
+  g_set_prgname ("my-gnome-terminal-server");
+  // TEST: g_set_prgname ("terminal-server");
+  // TODO?: g_set_application_name (_("MyTerminal"));
   g_set_application_name (_("Terminal"));
 
   GError *error = nullptr;

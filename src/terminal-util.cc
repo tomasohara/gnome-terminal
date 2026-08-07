@@ -1201,7 +1201,7 @@ char *terminal_util_hyperlink_uri_label (const char *uri)
   return g_utf8_make_valid (unesc, -1);
 }
 
-#define TERMINAL_CACHE_DIR                 "gnome-terminal"
+#define TERMINAL_CACHE_DIR                 "my-gnome-terminal"
 #define TERMINAL_PRINT_SETTINGS_FILENAME   "print-settings.ini"
 #define TERMINAL_PRINT_SETTINGS_GROUP_NAME "Print Settings"
 #define TERMINAL_PAGE_SETUP_GROUP_NAME     "Page Setup"

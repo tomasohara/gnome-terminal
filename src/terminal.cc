@@ -677,7 +677,7 @@ main (int argc, char **argv)
 
   g_log_set_writer_func (terminal_log_writer, nullptr, nullptr);
 
-  g_set_prgname ("gnome-terminal");
+  g_set_prgname ("my-gnome-terminal");
 
   setlocale (LC_ALL, "");
 

@@ -2344,7 +2344,7 @@ terminal_window_init (TerminalWindow *window)
   gtk_window_group_add_window (window_group, GTK_WINDOW (window));
   g_object_unref (window_group);
 
-  g_snprintf (role, sizeof (role), "gnome-terminal-window-%s", uuidstr);
+  g_snprintf (role, sizeof (role), "my-gnome-terminal-window-%s", uuidstr);
   gtk_window_set_role (GTK_WINDOW (window), role);
 }
 

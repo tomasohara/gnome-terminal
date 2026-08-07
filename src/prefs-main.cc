@@ -142,7 +142,7 @@ main(int argc,
     chdir("/");
 #pragma GCC diagnostic pop
 
-  g_set_prgname("gnome-terminal-preferences");
+  g_set_prgname("my-gnome-terminal-preferences");
   g_set_application_name(_("Terminal Preferences"));
 
   gs_free_error GError *error = nullptr;

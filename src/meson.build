@@ -296,6 +296,15 @@ configure_file(
 )
 
 configure_file(
+  input: gt_dns_name + '.Debug.service.in',
+  output: gt_dns_name + '.Debug.service',
+  configuration: server_conf,
+  install: true,
+  install_dir: gt_prefix / gt_dbusservicedir,
+  install_tag: 'runtime',
+)
+
+configure_file(
   input: gt_name + '-server.service.in',
   output: gt_name + '-server.service',
   configuration: server_conf,

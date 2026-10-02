@@ -310,6 +310,11 @@ ensure_server_running (const char *service_name)
       return TRUE;
   }
 
+  /* TODO(TPO): If/when this helper is enabled by default, pass
+   * --app-id <target_name> when spawning for non-default app IDs
+   * (e.g. org.gnome.MyTerminal.Debug). Today it always spawns the
+   * default app ID, so NameHasOwner(target_name) may stay false.
+   */
   /* Server is not running on D-Bus. Try spawning server binary directly */
   gs_free char *server_path = terminal_client_get_file_uninstalled (
       TERM_BINDIR,

@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=org.gnome.MyTerminal.Debug
+Exec=@libexecdir@/@gt_name@-server --app-id org.gnome.MyTerminal.Debug
